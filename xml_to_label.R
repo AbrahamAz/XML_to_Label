@@ -6,8 +6,8 @@ library(readxl)
 library(openxlsx)
 source("src/utils.R")
 # Input
-filename_tool <- "resources/tool.xlsx"
-filename_cleaned_data <- "resources/dataset.xlsx"
+filename_tool <- "resources/Supply_Chain_Analysis_Retailers_tool.xlsx"
+filename_cleaned_data <- "resources/data_cleaned.xlsx"
 
 # Output
 filename_labeled_output <- "output/dataset_labels.xlsx"
@@ -31,4 +31,21 @@ data_labeled <- data
 col_names <- colnames(data)
 for (i in 1:length(col_names)) {
   colnames(data_labeled)[i] <- name2label_question(tool_survey, tool_choices, col_names[i])
+  # code responses of select_one questions
+  if (col_names[i] %in% tool_survey$name){
+    q.type <- tool_survey$type[tool_survey$name==col_names[i]]
+    if (str_starts(q.type, "select_one ")){
+      q.list_name <- str_split(q.type, " ")[[1]][2]
+      choices <- tool_choices %>% filter(list_name==q.list_name) %>%
+        select(name, `label::english`) %>% rename(label=`label::english`)
+      d <- data.frame(col=as.character(data[[col_names[i]]])) %>% 
+        left_join(choices, by=c("col"="name")) %>% select(label)
+      data_labeled[[colnames(data_labeled)[i]]] <- d$label
+    }
+  }
 }
+
+
+
+
+
