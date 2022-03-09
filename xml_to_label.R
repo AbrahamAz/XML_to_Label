@@ -42,10 +42,18 @@ for (i in 1:length(col_names)) {
         left_join(choices, by=c("col"="name")) %>% select(label)
       data_labeled[[colnames(data_labeled)[i]]] <- d$label
     }
+    if (str_starts(q.type, "select_multiple ")){
+      q.name <- tool_survey$`label::english`[tool_survey$name == col_names[i]]
+      df <- data_labeled %>% 
+        select(starts_with(q.name)) 
+      col_df <- colnames(df)
+      for (i in 1:length(col_df)){
+        df <- df %>% 
+          mutate(!!sym(col_df[i]) := ifelse(!!sym(col_df[i]) == 1, str_split(col_df[i], "/")[[1]][2],!!sym(col_df[i])))
+      }
+    }
   }
 }
-
-
 
 
 
