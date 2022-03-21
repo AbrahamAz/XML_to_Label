@@ -21,39 +21,45 @@ tool_survey <- read_excel(filename_tool, sheet = "survey", col_types = "text") %
 tool_choices <- read_excel(filename_tool, sheet = "choices", col_types = "text") %>% 
   filter(!is.na(list_name))
 
-data_labeled_list <- list()
+# data_labeled_list <- list()
 
 # Loading the data
 data <- read_excel(filename_cleaned_data, col_types = "text")
 data_labeled <- data
 
-# XML to Label
-col_names <- colnames(data)
-for (i in 1:length(col_names)) {
-  colnames(data_labeled)[i] <- name2label_question(tool_survey, tool_choices, col_names[i])
-  # code responses of select_one questions
-  if (col_names[i] %in% tool_survey$name){
-    q.type <- tool_survey$type[tool_survey$name==col_names[i]]
-    if (str_starts(q.type, "select_one ")){
-      q.list_name <- str_split(q.type, " ")[[1]][2]
-      choices <- tool_choices %>% filter(list_name==q.list_name) %>%
-        select(name, `label::english`) %>% rename(label=`label::english`)
-      d <- data.frame(col=as.character(data[[col_names[i]]])) %>% 
-        left_join(choices, by=c("col"="name")) %>% select(label)
-      data_labeled[[colnames(data_labeled)[i]]] <- d$label
-    }
-    if (str_starts(q.type, "select_multiple ")){
-      q.name <- tool_survey$`label::english`[tool_survey$name == col_names[i]]
-      df <- data_labeled %>% 
-        select(starts_with(q.name)) 
-      col_df <- colnames(df)
-      for (i in 1:length(col_df)){
-        df <- df %>% 
-          mutate(!!sym(col_df[i]) := ifelse(!!sym(col_df[i]) == 1, str_split(col_df[i], "/")[[1]][2],!!sym(col_df[i])))
-      }
-    }
+# Select_One choice - XML to Label
+
+tool_one <- tool_survey %>% 
+  filter(str_starts(type, "select_one "))
+
+col_one <- tool_one$name
+
+for (i in 1:length(col_one)){
+  if(!is.null(data_labeled[[col_one[i]]])){
+    data_labeled[[col_one[i]]] <- name2label_choices_one(tool_survey,tool_choices,data,col_one[i])
   }
 }
+
+# Select_Multiple choices - XML to Label
+
+tool_multi <- tool_survey %>% 
+  filter(str_starts(type, "select_multiple "))
+col_multi <- tool_multi$name
+
+for (i in 1:length(col_multi)){
+  if(!is.null(data_labeled[[col_multi[i]]])){
+    data_labeled[[col_multi[i]]] <- name2label_choices_multiple(tool_survey,tool_choices,data,col_multi[i])
+  }
+}
+
+# Questions - XML to Label
+col_names <- colnames(data)
+
+for (i in 1:length(col_names)) {
+  colnames(data_labeled)[i] <- name2label_question(tool_survey, tool_choices, col_names[i])
+  
+}
+
 
 
 
